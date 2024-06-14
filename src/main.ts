@@ -10,6 +10,7 @@ export async function run(): Promise<void> {
     try {
         const configFile = core.getInput('config-file', { required: true });
         let outFile = core.getInput('out-file', { required: false });
+        const fileType = core.getInput('file-type', { required: true });
         const environmentVariablesString = core.getInput('environment-variables', { required: true });
 
         if (!outFile?.length) {
@@ -30,7 +31,7 @@ export async function run(): Promise<void> {
 
         const environmentVariables = parseEnvironmentVariablesString(environmentVariablesString || '');
 
-        const config: Record<string, string> = JSON.parse(fs.readFileSync(configFilePath, 'utf-8'));
+        const config: Record<string, string> = loadEnvFile(configFilePath, fileType);
 
         for (const key of Object.keys(config)) {
             if (key in environmentVariables) {
@@ -39,7 +40,7 @@ export async function run(): Promise<void> {
             }
         }
 
-        fs.writeFileSync(outFilePath, JSON.stringify(config));
+        writeEnvFile(outFilePath, fileType, config)
 
         core.info(`Wrote updated values to ${ outFile }`);
     } catch (error) {
@@ -84,5 +85,33 @@ function getEnvironmentItems(environmentVariablesString: string) {
         }
 
         return items.map(([ name, ...valueParts ]) => ({ name, value: valueParts.join('=') }));
+    }
+}
+
+function loadEnvFile(path: string, fileType: string) {
+    switch (fileType) {
+        case 'json':
+            return JSON.parse(fs.readFileSync(path, 'utf-8'));
+        case 'env':
+            return fs.readFileSync(path, 'utf-8').split('\n').reduce<Record<string, string>>((acc, curr) => {
+                const parts = curr.split('=');
+                acc[parts[0]] = parts.slice(1).join('=');
+                return acc;
+            }, {});
+        default:
+            throw new Error(`Unknown file type '${fileType}'`)
+    }
+}
+
+function writeEnvFile(path: string, fileType: string, data: Record<string, string>) {
+    switch (fileType) {
+        case 'json':
+            return fs.writeFileSync(path, JSON.stringify(data), 'utf-8');
+        case 'env':
+            return fs.writeFileSync(path,
+                Object.entries(data).map(([ key, value ]) => `${ key }=${ value }`).join('\n'),
+                'utf-8');
+        default:
+            throw new Error(`Unknown file type '${fileType}'`)
     }
 }

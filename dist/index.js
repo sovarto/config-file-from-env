@@ -24957,6 +24957,7 @@ async function run() {
     try {
         const configFile = core.getInput('config-file', { required: true });
         let outFile = core.getInput('out-file', { required: false });
+        const fileType = core.getInput('file-type', { required: true });
         const environmentVariablesString = core.getInput('environment-variables', { required: true });
         if (!outFile?.length) {
             core.info(`out-file input not provided. Will write values back to config-file '${configFile}'`);
@@ -24972,14 +24973,14 @@ async function run() {
             throw new Error(`Config file does not exist: ${configFile}`);
         }
         const environmentVariables = parseEnvironmentVariablesString(environmentVariablesString || '');
-        const config = JSON.parse(fs.readFileSync(configFilePath, 'utf-8'));
+        const config = loadEnvFile(configFilePath, fileType);
         for (const key of Object.keys(config)) {
             if (key in environmentVariables) {
                 config[key] = environmentVariables[key];
                 core.info(`Set ${key} to '${environmentVariables[key]}'`);
             }
         }
-        fs.writeFileSync(outFilePath, JSON.stringify(config));
+        writeEnvFile(outFilePath, fileType, config);
         core.info(`Wrote updated values to ${outFile}`);
     }
     catch (error) {
@@ -25022,6 +25023,30 @@ function getEnvironmentItems(environmentVariablesString) {
             throw new Error(`Invalid environment variables received. Input 'environment-variables' needs to be valid JSON or it needs to be lines of the form NAME=value. The following lines are invalid:\n${invalidLines.join('\n')}`);
         }
         return items.map(([name, ...valueParts]) => ({ name, value: valueParts.join('=') }));
+    }
+}
+function loadEnvFile(path, fileType) {
+    switch (fileType) {
+        case 'json':
+            return JSON.parse(fs.readFileSync(path, 'utf-8'));
+        case 'env':
+            return fs.readFileSync(path, 'utf-8').split('\n').reduce((acc, curr) => {
+                const parts = curr.split('=');
+                acc[parts[0]] = parts.slice(1).join('=');
+                return acc;
+            }, {});
+        default:
+            throw new Error(`Unknown file type '${fileType}'`);
+    }
+}
+function writeEnvFile(path, fileType, data) {
+    switch (fileType) {
+        case 'json':
+            return fs.writeFileSync(path, JSON.stringify(data), 'utf-8');
+        case 'env':
+            return fs.writeFileSync(path, Object.entries(data).map(([key, value]) => `${key}=${value}`).join('\n'), 'utf-8');
+        default:
+            throw new Error(`Unknown file type '${fileType}'`);
     }
 }
 

@@ -13,6 +13,10 @@ inputs:
   out-file:
     description: 'The file to which the updated config should be written'
     required: false
+  file-type:
+    description: 'The file type: env or json'
+    required: true
+    default: json
   environment-variables:
     description: 'The environment variables and their values to use to replace the values in the config file. Lines of format KEY=value or a JSON array of format [{"name": "KEY", "value": "value"}]'
     required: true
