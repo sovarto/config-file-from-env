@@ -24956,8 +24956,12 @@ const path = __importStar(__nccwpck_require__(9411));
 async function run() {
     try {
         const configFile = core.getInput('config-file', { required: true });
-        const outFile = core.getInput('config-file', { required: false }) || configFile;
+        let outFile = core.getInput('out-file', { required: false });
         const environmentVariablesString = core.getInput('environment-variables', { required: true });
+        if (!outFile?.length) {
+            core.info(`out-file input not provided. Will write values back to config-file '${configFile}'`);
+            outFile = configFile;
+        }
         const configFilePath = path.isAbsolute(configFile) ?
             configFile :
             path.join(process.env.GITHUB_WORKSPACE, configFile);

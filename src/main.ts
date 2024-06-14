@@ -9,8 +9,13 @@ import * as path from 'node:path';
 export async function run(): Promise<void> {
     try {
         const configFile = core.getInput('config-file', { required: true });
-        const outFile = core.getInput('out-file', { required: false }) || configFile;
+        let outFile = core.getInput('out-file', { required: false });
         const environmentVariablesString = core.getInput('environment-variables', { required: true });
+
+        if (!outFile?.length) {
+            core.info(`out-file input not provided. Will write values back to config-file '${ configFile }'`);
+            outFile = configFile;
+        }
 
         const configFilePath = path.isAbsolute(configFile) ?
                                configFile :
