@@ -1,0 +1,16 @@
+name: 'Update a config file with values from environment'
+description: 'Updates a config file with values from environment'
+author: 'Sovarto GmbH'
+
+branding:
+  icon: 'cloud'
+  color: 'blue'
+
+inputs:
+  environment-variables:
+    description: 'The environment variables and their values to use to replace the values in the config file. Lines of format KEY=value or a JSON array of format [{"name": "KEY", "value": "value"}]'
+    required: true
+
+runs:
+  using: node20
+  main: dist/index.js
